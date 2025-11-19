@@ -26,6 +26,10 @@ public abstract class ExpressaoBinaria extends Expressao {
     public Token getOperador() {
         return operador;
     }
+    
+    public String getValorOperador(){
+        return operador.toString();
+    }
 
     public Expressao getOperandoD() {
         return operandoD;

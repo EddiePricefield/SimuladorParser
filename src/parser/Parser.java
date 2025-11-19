@@ -31,6 +31,10 @@ public class Parser {
         return new Parser( expressao );
     }
     
+    public Expressao getExpressaoResultante(){
+        return expressaoResultante;
+    }
+    
     public double getResultado() {
         return resultado;
     }

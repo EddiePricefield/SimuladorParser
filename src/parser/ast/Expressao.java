@@ -6,4 +6,7 @@ package parser.ast;
  */
 public abstract class Expressao {
     
+    public int rank;
+    public int level;
+    
 }
