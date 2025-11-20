@@ -32,7 +32,8 @@ import parser.ast.*;
 
 public class Main extends EngineFrame {
     
-    private Color tema;
+    private Color tema = new Color(0xFF738ebd);
+    private Color background = new Color (0xFFc9c9c9);
     
     //Componentes
     private List<GuiComponent> componentes;
@@ -50,11 +51,14 @@ public class Main extends EngineFrame {
     private GuiButton btnCamB;
     private GuiButton btnCamC;
     private GuiButton btnCamReset;
+    private GuiButton btnCamMais;
+    private GuiButton btnCamMenos;
     
     //Variáveis para o Parser
     private Parser parser;
     private Expressao expressaoResultado;
     private int currentRank;
+    private String resultadoDaExpressao;
     
     public Main() {
         
@@ -81,8 +85,6 @@ public class Main extends EngineFrame {
         useAsDependencyForIMGUI();
         componentes = new ArrayList<>();
         
-        tema = BEIGE;
-        
         parser = Parser.parse("");
         expressaoResultado = parser.getExpressaoResultante();
         
@@ -94,6 +96,8 @@ public class Main extends EngineFrame {
         btnCamE = new GuiButton(8, 418, 10, 10, "");
         btnCamD = new GuiButton(30, 418, 10, 10, "");
         btnCamReset = new GuiButton(21, 420, 6, 6, "");
+        btnCamMais = new GuiButton(138, 410, 8, 8, "");
+        btnCamMenos = new GuiButton(138, 425, 8, 8, "");
         
         componentes.add(textFieldExpressao);
         componentes.add(btnInserir);
@@ -102,6 +106,8 @@ public class Main extends EngineFrame {
         componentes.add(btnCamE);
         componentes.add(btnCamD);
         componentes.add(btnCamReset);
+        componentes.add(btnCamMais);
+        componentes.add(btnCamMenos);
         
         //Criação da Câmera
         camera = new Camera2D();
@@ -117,11 +123,15 @@ public class Main extends EngineFrame {
         
         atualizarComponentes(delta);
         
+        //Cores
+        textFieldExpressao.setBackgroundColor(background);
+        
         //Inserir a Expressão do Parser
         if (isKeyDown(KEY_ENTER) || btnInserir.isMousePressed()){
             parser = Parser.parse(textFieldExpressao.getValue());
             expressaoResultado = parser.getExpressaoResultante();
             resetarCamera();
+            resultadoDaExpressao = Double.toString(parser.getResultado());
         }
         
         //Joystick (Movimento da Câmera)
@@ -164,6 +174,21 @@ public class Main extends EngineFrame {
             btnCamReset.setBackgroundColor(fundoBotao);
         }
         
+        //Zoom da Câmera
+        if (getMouseWheelMove() < 0 || btnCamMenos.isMouseDown()) {
+            camera.zoom -= 1 * delta;
+            btnCamMenos.setBackgroundColor(cliqueBotao);
+        } else {
+            btnCamMenos.setBackgroundColor(fundoBotao);
+        }
+
+        if (getMouseWheelMove() > 0 || btnCamMais.isMouseDown()) {
+            camera.zoom += 1 * delta;
+            btnCamMais.setBackgroundColor(cliqueBotao);
+        } else {
+            btnCamMais.setBackgroundColor(fundoBotao);
+        }
+        
         //Atualizar Câmera
         camera.target = new Vector2(cameraPos.x, cameraPos.y);
         
@@ -186,7 +211,7 @@ public class Main extends EngineFrame {
     @Override
     public void draw() {
         
-        clearBackground( WHITE );
+        clearBackground( background );
         
         //Desenhar o Parser
         beginMode2D(camera);
@@ -197,7 +222,7 @@ public class Main extends EngineFrame {
         fillTriangle(610, 30, 900, 100, 800, -80, tema);
         drawTriangle(610, 30, 900, 100, 800, -80, BLACK);
         fillRectangle(-1, -1, 801, 50, tema);
-        fillTriangle(635, 26, 890, 85, 815, -70, WHITE);
+        fillTriangle(635, 26, 890, 85, 815, -70, background);
         drawTriangle(635, 26, 890, 85, 815, -70, BLACK);
         drawLine(0, 49, 690, 49, BLACK);
         
@@ -205,16 +230,41 @@ public class Main extends EngineFrame {
         fillCircle(85, 370, 65, tema);
         drawCircle(85, 370, 65, BLACK);
         fillRectangle(0, 380, 800, 100, tema);
-        fillCircle(85, 370, 55, WHITE);
+        fillCircle(85, 370, 55, background);
         drawCircle(85, 370, 55, BLACK);
         drawLine(0, 380, 20, 380, BLACK);
         drawLine(150, 380, 800, 380, BLACK);
         
         //Desenhar o Título do Parser
         drawOutlinedText("PARSER", 690, 8, 15 , 28, tema, 1, BLACK);
-
-        desenharComponentes();
         
+        //Desenhar o Resultado
+        if (resultadoDaExpressao != null){
+            
+            double num = Double.parseDouble(resultadoDaExpressao);
+            
+            if( num % (int)num == 0 || num == 0){
+                resultadoDaExpressao = String.valueOf((int) num);
+            }
+            
+            int tam = resultadoDaExpressao.length();
+            
+            switch (tam){
+                case 1 -> drawOutlinedText(resultadoDaExpressao, 58, 335, 100, tema, 1, BLACK);
+                case 2 -> drawOutlinedText(resultadoDaExpressao, 38, 345, 80, tema, 1, BLACK);
+                case 3 -> drawOutlinedText(resultadoDaExpressao, 36, 355, 55, tema, 1, BLACK);
+                case 4 -> drawOutlinedText(resultadoDaExpressao, 38, 358, 40, tema, 1, BLACK);
+                case 5 -> drawOutlinedText(resultadoDaExpressao, 36, 360, 33, tema, 1, BLACK);
+                case 6 -> drawOutlinedText(resultadoDaExpressao, 38, 363, 27, tema, 1, BLACK);
+                case 7 -> drawOutlinedText(resultadoDaExpressao, 36, 363, 24, tema, 1, BLACK);
+                case 8 -> drawOutlinedText(resultadoDaExpressao, 33, 363, 22, tema, 1, BLACK);
+                case 9 -> drawOutlinedText(resultadoDaExpressao, 36, 363, 19, tema, 1, BLACK);
+            }
+
+        }
+        
+        //Desenhar os Componentes
+        desenharComponentes();
     
     }
     
@@ -225,6 +275,7 @@ public class Main extends EngineFrame {
         for (GuiComponent c : componentes) {
             if (!componentes.isEmpty()) {
                 c.update(delta);
+                c.setBorderColor(BLACK);
             }
         }
 
@@ -264,7 +315,7 @@ public class Main extends EngineFrame {
         calculateRanksAndLevels(expressaoResultado, 0);
         
         if (expressaoResultado != null){
-            cameraPos = new Vector2(110 + expressaoResultado.rank * 50, 140 + expressaoResultado.level * 50);
+            cameraPos = new Vector2(110 + expressaoResultado.rank * 50, 220 + expressaoResultado.level * 50);
             camera.target = cameraPos;
             camera.offset = new Vector2(getWidth() / 2, getHeight() / 2);
             camera.rotation = 0;
@@ -312,15 +363,15 @@ public class Main extends EngineFrame {
 
         if (e instanceof Numero c) {
             int w = measureText(c.toString(), 20);
-            drawText(c.toString(), x + c.rank * spacing - w / 2 + 2, y + c.level * spacing - 5, 20, BLACK);
+            drawText(c.toString(), 1 + x + c.rank * spacing - w / 2 + 2, y + c.level * spacing - 5, 17, BLACK);
         } else if (e instanceof ExpressaoAdicao a) {
             int w = measureText(a.getValorOperador(), 20);
-            drawText(a.getValorOperador(), x + a.rank * spacing - w / 2 + 2, y + a.level * spacing - 5, 20, BLACK);
+            drawText(a.getValorOperador(), 1 + x + a.rank * spacing - w / 2 + 2, y + a.level * spacing - 5, 17, BLACK);
             desenharNos(a.getOperandoE(), x, y, spacing, radius);
             desenharNos(a.getOperandoD(), x, y, spacing, radius);
         } else if (e instanceof ExpressaoMultiplicacao m) {
             int w = measureText(m.getValorOperador(), 20);
-            drawText(m.getValorOperador(), x + m.rank * spacing - w / 2 + 2, y + m.level * spacing - 5, 20, BLACK);
+            drawText(m.getValorOperador(), 1 + x + m.rank * spacing - w / 2 + 2, y + m.level * spacing - 5, 17, BLACK);
             desenharNos(m.getOperandoE(), x, y, spacing, radius);
             desenharNos(m.getOperandoD(), x, y, spacing, radius);
         }
