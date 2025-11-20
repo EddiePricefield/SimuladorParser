@@ -83,7 +83,7 @@ public class Main extends EngineFrame {
         
         tema = BEIGE;
         
-        parser = Parser.parse("1");
+        parser = Parser.parse("");
         expressaoResultado = parser.getExpressaoResultante();
         
         textFieldExpressao = new GuiTextField(165, 400, 500, 30, "");
@@ -193,17 +193,25 @@ public class Main extends EngineFrame {
         desenharParser(100, 100, 50, 20);
         endMode2D();
         
-        //Desenhar o Título do Parser
-        drawOutlinedText("Árvore AST (Parser)", 25, 25, 20, BEIGE, 1, BLACK);
+        //Desenhar o menu em cima
+        fillTriangle(610, 30, 900, 100, 800, -80, tema);
+        drawTriangle(610, 30, 900, 100, 800, -80, BLACK);
+        fillRectangle(-1, -1, 801, 50, tema);
+        fillTriangle(635, 26, 890, 85, 815, -70, WHITE);
+        drawTriangle(635, 26, 890, 85, 815, -70, BLACK);
+        drawLine(0, 49, 690, 49, BLACK);
         
         //Desenhar menu em baixo
-        fillCircle(85, 370, 65, BEIGE);
+        fillCircle(85, 370, 65, tema);
         drawCircle(85, 370, 65, BLACK);
-        fillRectangle(0, 380, 800, 100, BEIGE);
+        fillRectangle(0, 380, 800, 100, tema);
         fillCircle(85, 370, 55, WHITE);
         drawCircle(85, 370, 55, BLACK);
         drawLine(0, 380, 20, 380, BLACK);
         drawLine(150, 380, 800, 380, BLACK);
+        
+        //Desenhar o Título do Parser
+        drawOutlinedText("PARSER", 690, 8, 15 , 28, tema, 1, BLACK);
 
         desenharComponentes();
         
@@ -231,6 +239,16 @@ public class Main extends EngineFrame {
         }
 
     }
+    
+    
+    public void drawOutlinedText(String text, int posX, int posY, int fontSize, int rotation, Paint color, int outlineSize, Paint outlineColor){
+        drawText(text, posX - 2, posY + 2, fontSize, rotation, GRAY);
+        drawText(text, posX - outlineSize, posY - outlineSize, fontSize, rotation, outlineColor);
+        drawText(text, posX + outlineSize, posY - outlineSize, fontSize, rotation, outlineColor);
+        drawText(text, posX - outlineSize, posY + outlineSize, fontSize, rotation, outlineColor);
+        drawText(text, posX + outlineSize, posY + outlineSize, fontSize, rotation, outlineColor);
+        drawText(text, posX, posY, fontSize, rotation, color);
+    }
 
     public void drawOutlinedText(String text, int posX, int posY, int fontSize, Paint color, int outlineSize, Paint outlineColor) {
         drawText(text, posX - 2, posY + 2, fontSize, GRAY);
@@ -245,18 +263,27 @@ public class Main extends EngineFrame {
         currentRank = 0;
         calculateRanksAndLevels(expressaoResultado, 0);
         
-        cameraPos = new Vector2(110 + expressaoResultado.rank * 50, 180 + expressaoResultado.level * 50);
-        camera.target = cameraPos;
-        camera.offset = new Vector2(getWidth() / 2, getHeight() / 2);
-        camera.rotation = 0;
-        camera.zoom = 1;
+        if (expressaoResultado != null){
+            cameraPos = new Vector2(110 + expressaoResultado.rank * 50, 140 + expressaoResultado.level * 50);
+            camera.target = cameraPos;
+            camera.offset = new Vector2(getWidth() / 2, getHeight() / 2);
+            camera.rotation = 0;
+            camera.zoom = 1;
+        }else{
+            cameraPos = new Vector2(0, 0);
+        }
+        
     }
     
     public void desenharParser( int x, int y, int spacing, int radius ) {
-        currentRank = 0;
-        calculateRanksAndLevels( expressaoResultado, 0 );
-        desenharArestas( expressaoResultado, x, y, spacing, radius );
-        desenharNos( expressaoResultado, x, y, spacing, radius );
+        
+        if (expressaoResultado != null){
+            currentRank = 0;
+            calculateRanksAndLevels(expressaoResultado, 0);
+            desenharArestas(expressaoResultado, x, y, spacing, radius);
+            desenharNos(expressaoResultado, x, y, spacing, radius);
+        }
+        
     }
     
     private void calculateRanksAndLevels(Expressao e, int level) {
