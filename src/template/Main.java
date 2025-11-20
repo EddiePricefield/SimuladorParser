@@ -1,10 +1,19 @@
 package template;
 
+import br.com.davidbuzatto.jsge.core.Camera2D;
 import br.com.davidbuzatto.jsge.core.engine.EngineFrame;
 import static br.com.davidbuzatto.jsge.core.engine.EngineFrame.GRAY;
-import br.com.davidbuzatto.jsge.geom.Rectangle;
+import static br.com.davidbuzatto.jsge.core.engine.EngineFrame.KEY_DOWN;
+import static br.com.davidbuzatto.jsge.core.engine.EngineFrame.KEY_LEFT;
+import static br.com.davidbuzatto.jsge.core.engine.EngineFrame.KEY_RIGHT;
+import static br.com.davidbuzatto.jsge.core.engine.EngineFrame.KEY_UP;
+import static br.com.davidbuzatto.jsge.core.engine.EngineFrame.LIGHTGRAY;
+import br.com.davidbuzatto.jsge.imgui.GuiButton;
 import br.com.davidbuzatto.jsge.imgui.GuiComponent;
 import br.com.davidbuzatto.jsge.imgui.GuiLabelButton;
+import br.com.davidbuzatto.jsge.imgui.GuiTextField;
+import br.com.davidbuzatto.jsge.math.Vector2;
+import java.awt.Color;
 import java.awt.Desktop;
 import java.awt.Paint;
 import java.net.URI;
@@ -20,11 +29,27 @@ import parser.ast.*;
  * Engine JSGE
  * @author Prof. Dr. David Buzatto
  */
+
 public class Main extends EngineFrame {
+    
+    private Color tema;
     
     //Componentes
     private List<GuiComponent> componentes;
+    
     private GuiLabelButton btnLink;
+    private GuiTextField textFieldExpressao;
+    private GuiButton btnInserir;
+    
+    //Câmera
+    private Camera2D camera;
+    private Vector2 cameraPos;
+    private final double cameraVel = 300;
+    private GuiButton btnCamE;
+    private GuiButton btnCamD;
+    private GuiButton btnCamB;
+    private GuiButton btnCamC;
+    private GuiButton btnCamReset;
     
     //Variáveis para o Parser
     private Parser parser;
@@ -35,7 +60,7 @@ public class Main extends EngineFrame {
         
         super(
             800,                 // largura                      / width
-            450,                 // algura                       / height
+            450,                 // altura                       / height
             "Simulador Parser",      // título                       / title
             60,                  // quadros por segundo desejado / target FPS
             true,                // suavização                   / antialiasing
@@ -56,12 +81,32 @@ public class Main extends EngineFrame {
         useAsDependencyForIMGUI();
         componentes = new ArrayList<>();
         
-        parser = Parser.parse("5 + 3 + 2");
+        tema = BEIGE;
+        
+        parser = Parser.parse("1");
         expressaoResultado = parser.getExpressaoResultante();
         
-        btnLink = new GuiLabelButton(getWidth() - 140, getHeight() - 65, 120, 20, "@EddiePricefield");
+        textFieldExpressao = new GuiTextField(165, 400, 500, 30, "");
+        btnInserir = new GuiButton(685, 400, 100, 30, "Inserir");
         
-        componentes.add(btnLink);
+        btnCamC = new GuiButton(19, 407, 10, 10, "");
+        btnCamB = new GuiButton(19, 429, 10, 10, "");
+        btnCamE = new GuiButton(8, 418, 10, 10, "");
+        btnCamD = new GuiButton(30, 418, 10, 10, "");
+        btnCamReset = new GuiButton(21, 420, 6, 6, "");
+        
+        componentes.add(textFieldExpressao);
+        componentes.add(btnInserir);
+        componentes.add(btnCamC);
+        componentes.add(btnCamB);
+        componentes.add(btnCamE);
+        componentes.add(btnCamD);
+        componentes.add(btnCamReset);
+        
+        //Criação da Câmera
+        camera = new Camera2D();
+        resetarCamera();        
+        btnLink = new GuiLabelButton(10, getHeight() - 65, 120, 20, "@EddiePricefield");
         
     }
     
@@ -72,6 +117,57 @@ public class Main extends EngineFrame {
         
         atualizarComponentes(delta);
         
+        //Inserir a Expressão do Parser
+        if (isKeyDown(KEY_ENTER) || btnInserir.isMousePressed()){
+            parser = Parser.parse(textFieldExpressao.getValue());
+            expressaoResultado = parser.getExpressaoResultante();
+            resetarCamera();
+        }
+        
+        //Joystick (Movimento da Câmera)
+        Color fundoBotao = LIGHTGRAY;
+        Color cliqueBotao = new Color(151, 232, 255, 255);
+
+        if (isKeyDown(KEY_UP) || btnCamC.isMouseDown()) {
+            cameraPos.y += cameraVel * delta;
+            btnCamC.setBackgroundColor(cliqueBotao);
+        } else {
+            btnCamC.setBackgroundColor(fundoBotao);
+        }
+
+        if (isKeyDown(KEY_DOWN) || btnCamB.isMouseDown()) {
+            cameraPos.y -= cameraVel * delta;
+            btnCamB.setBackgroundColor(cliqueBotao);
+        } else {
+            btnCamB.setBackgroundColor(fundoBotao);
+        }
+
+        if (isKeyDown(KEY_LEFT) || btnCamE.isMouseDown()) {
+            cameraPos.x += cameraVel * delta;
+            btnCamE.setBackgroundColor(cliqueBotao);
+        } else {
+            btnCamE.setBackgroundColor(fundoBotao);
+        }
+
+        if (isKeyDown(KEY_RIGHT) || btnCamD.isMouseDown()) {
+            cameraPos.x -= cameraVel * delta;
+            btnCamD.setBackgroundColor(cliqueBotao);
+        } else {
+            btnCamD.setBackgroundColor(fundoBotao);
+        }
+        
+        //Resetar Câmera
+        if (isKeyDown(KEY_R) || btnCamReset.isMousePressed()) {
+            resetarCamera();
+            btnCamReset.setBackgroundColor(cliqueBotao);
+        } else {
+            btnCamReset.setBackgroundColor(fundoBotao);
+        }
+        
+        //Atualizar Câmera
+        camera.target = new Vector2(cameraPos.x, cameraPos.y);
+        
+        //Link Github
         if (btnLink.isMousePressed()) {
 
             try {
@@ -91,12 +187,26 @@ public class Main extends EngineFrame {
     public void draw() {
         
         clearBackground( WHITE );
-
-        desenharParser(100, 100, 50, 20);
         
+        //Desenhar o Parser
+        beginMode2D(camera);
+        desenharParser(100, 100, 50, 20);
+        endMode2D();
+        
+        //Desenhar o Título do Parser
+        drawOutlinedText("Árvore AST (Parser)", 25, 25, 20, BEIGE, 1, BLACK);
+        
+        //Desenhar menu em baixo
+        fillCircle(85, 370, 65, BEIGE);
+        drawCircle(85, 370, 65, BLACK);
+        fillRectangle(0, 380, 800, 100, BEIGE);
+        fillCircle(85, 370, 55, WHITE);
+        drawCircle(85, 370, 55, BLACK);
+        drawLine(0, 380, 20, 380, BLACK);
+        drawLine(150, 380, 800, 380, BLACK);
+
         desenharComponentes();
         
-        drawFPS( 20, 20 );
     
     }
     
@@ -131,11 +241,22 @@ public class Main extends EngineFrame {
         drawText(text, posX, posY, fontSize, color);
     }
     
+    public void resetarCamera(){
+        currentRank = 0;
+        calculateRanksAndLevels(expressaoResultado, 0);
+        
+        cameraPos = new Vector2(110 + expressaoResultado.rank * 50, 180 + expressaoResultado.level * 50);
+        camera.target = cameraPos;
+        camera.offset = new Vector2(getWidth() / 2, getHeight() / 2);
+        camera.rotation = 0;
+        camera.zoom = 1;
+    }
+    
     public void desenharParser( int x, int y, int spacing, int radius ) {
         currentRank = 0;
         calculateRanksAndLevels( expressaoResultado, 0 );
-        drawEdges( expressaoResultado, x, y, spacing, radius );
-        drawNodes( expressaoResultado, x, y, spacing, radius );
+        desenharArestas( expressaoResultado, x, y, spacing, radius );
+        desenharNos( expressaoResultado, x, y, spacing, radius );
     }
     
     private void calculateRanksAndLevels(Expressao e, int level) {
@@ -157,9 +278,9 @@ public class Main extends EngineFrame {
 
     }
 
-    private void drawNodes(Expressao e, int x, int y, int spacing, int radius) {
+    private void desenharNos(Expressao e, int x, int y, int spacing, int radius) {
 
-        fillCircle(x + e.rank * spacing, y + e.level * spacing, radius, WHITE);
+        fillCircle(x + e.rank * spacing, y + e.level * spacing, radius, tema);
         drawCircle(x + e.rank * spacing, y + e.level * spacing, radius, BLACK);
 
         if (e instanceof Numero c) {
@@ -168,18 +289,18 @@ public class Main extends EngineFrame {
         } else if (e instanceof ExpressaoAdicao a) {
             int w = measureText(a.getValorOperador(), 20);
             drawText(a.getValorOperador(), x + a.rank * spacing - w / 2 + 2, y + a.level * spacing - 5, 20, BLACK);
-            drawNodes(a.getOperandoE(), x, y, spacing, radius);
-            drawNodes(a.getOperandoD(), x, y, spacing, radius);
+            desenharNos(a.getOperandoE(), x, y, spacing, radius);
+            desenharNos(a.getOperandoD(), x, y, spacing, radius);
         } else if (e instanceof ExpressaoMultiplicacao m) {
             int w = measureText(m.getValorOperador(), 20);
             drawText(m.getValorOperador(), x + m.rank * spacing - w / 2 + 2, y + m.level * spacing - 5, 20, BLACK);
-            drawNodes(m.getOperandoE(), x, y, spacing, radius);
-            drawNodes(m.getOperandoD(), x, y, spacing, radius);
+            desenharNos(m.getOperandoE(), x, y, spacing, radius);
+            desenharNos(m.getOperandoD(), x, y, spacing, radius);
         }
 
     }
 
-    private void drawEdges(Expressao e, int x, int y, int spacing, int radius) {
+    private void desenharArestas(Expressao e, int x, int y, int spacing, int radius) {
 
         if (e instanceof ExpressaoAdicao a) {
             double x1 = x + a.rank * spacing;
@@ -190,8 +311,8 @@ public class Main extends EngineFrame {
             double y3 = y + a.getOperandoD().level * spacing;
             drawLine(x1, y1, x2, y2, BLACK);
             drawLine(x1, y1, x3, y3, BLACK);
-            drawEdges(a.getOperandoE(), x, y, spacing, radius);
-            drawEdges(a.getOperandoD(), x, y, spacing, radius);
+            desenharArestas(a.getOperandoE(), x, y, spacing, radius);
+            desenharArestas(a.getOperandoD(), x, y, spacing, radius);
         } else if (e instanceof ExpressaoMultiplicacao m) {
             double x1 = x + m.rank * spacing;
             double y1 = y + m.level * spacing;
@@ -201,8 +322,8 @@ public class Main extends EngineFrame {
             double y3 = y + m.getOperandoD().level * spacing;
             drawLine(x1, y1, x2, y2, EngineFrame.BLACK);
             drawLine(x1, y1, x3, y3, EngineFrame.BLACK);
-            drawEdges(m.getOperandoE(), x, y, spacing, radius);
-            drawEdges(m.getOperandoD(), x, y, spacing, radius);
+            desenharArestas(m.getOperandoE(), x, y, spacing, radius);
+            desenharArestas(m.getOperandoD(), x, y, spacing, radius);
         }
 
     }

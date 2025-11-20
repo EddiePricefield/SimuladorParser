@@ -10,7 +10,7 @@ public class TesteValor {
     public static void main( String[] args ) {
         
         String[] expressoes = {
-            "7 % 3 * 10.5 - 1 % 2"
+            "4 % 5"
         };
         
         for ( String expressao : expressoes ) {
