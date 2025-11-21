@@ -10,6 +10,7 @@ import static br.com.davidbuzatto.jsge.core.engine.EngineFrame.KEY_UP;
 import static br.com.davidbuzatto.jsge.core.engine.EngineFrame.LIGHTGRAY;
 import br.com.davidbuzatto.jsge.imgui.GuiButton;
 import br.com.davidbuzatto.jsge.imgui.GuiComponent;
+import br.com.davidbuzatto.jsge.imgui.GuiLabel;
 import br.com.davidbuzatto.jsge.imgui.GuiLabelButton;
 import br.com.davidbuzatto.jsge.imgui.GuiTextField;
 import br.com.davidbuzatto.jsge.math.Vector2;
@@ -42,10 +43,6 @@ public class Main extends EngineFrame {
     private GuiTextField textFieldExpressao;
     private GuiButton btnInserir;
     
-    //Câmera
-    private Camera2D camera;
-    private Vector2 cameraPos;
-    private final double cameraVel = 300;
     private GuiButton btnCamE;
     private GuiButton btnCamD;
     private GuiButton btnCamB;
@@ -54,11 +51,33 @@ public class Main extends EngineFrame {
     private GuiButton btnCamMais;
     private GuiButton btnCamMenos;
     
+    private GuiButton btnIniciarJogo;
+    private GuiButton btnEncerrarJogo;
+    private GuiTextField textFieldResposta;
+    private GuiButton btnEnviarResposta;
+    private GuiLabel labelPontuacao;
+    
+    //Câmera
+    private Camera2D camera;
+    private Vector2 cameraPos;
+    private final double cameraVel = 300;
+    
     //Variáveis para o Parser
     private Parser parser;
     private Expressao expressaoResultado;
     private int currentRank;
     private String resultadoDaExpressao;
+    
+    //Variáveis para o Modo Jogo
+    private double contagem = 0;
+    private int pontuacao = 0;
+    private String respostaJogo = "1";
+    
+    private enum EstadoJogo{
+        NADA, CONTAGEM, INICIO, RODADA, FIM, VITORIA
+    };
+    
+    private EstadoJogo estado;
     
     public Main() {
         
@@ -84,6 +103,7 @@ public class Main extends EngineFrame {
         
         useAsDependencyForIMGUI();
         componentes = new ArrayList<>();
+        estado = EstadoJogo.NADA;
         
         parser = Parser.parse("");
         expressaoResultado = parser.getExpressaoResultante();
@@ -99,6 +119,12 @@ public class Main extends EngineFrame {
         btnCamMais = new GuiButton(138, 410, 8, 8, "");
         btnCamMenos = new GuiButton(138, 425, 8, 8, "");
         
+        btnIniciarJogo = new GuiButton(15, 15, 100, 20, "Iniciar");
+        btnEncerrarJogo = new GuiButton(130, 15, 100, 20, "Encerrar");
+        textFieldResposta = new GuiTextField(300, 15, 100, 20, "");
+        btnEnviarResposta = new GuiButton(410, 15, 20, 20, "▶");
+        labelPontuacao = new GuiLabel(480, 15, 20, 20, "Pontuação: 0");
+                
         componentes.add(textFieldExpressao);
         componentes.add(btnInserir);
         componentes.add(btnCamC);
@@ -108,10 +134,16 @@ public class Main extends EngineFrame {
         componentes.add(btnCamReset);
         componentes.add(btnCamMais);
         componentes.add(btnCamMenos);
+        componentes.add(btnIniciarJogo);
+        componentes.add(btnEncerrarJogo);
+        componentes.add(textFieldResposta);
+        componentes.add(btnEnviarResposta);
+        componentes.add(labelPontuacao);
         
         //Criação da Câmera
         camera = new Camera2D();
-        resetarCamera();        
+        resetarCamera();   
+        
         btnLink = new GuiLabelButton(10, getHeight() - 65, 120, 20, "@EddiePricefield");
         
     }
@@ -125,9 +157,10 @@ public class Main extends EngineFrame {
         
         //Cores
         textFieldExpressao.setBackgroundColor(background);
+        labelPontuacao.setTextColor(BLACK);
         
         //Inserir a Expressão do Parser
-        if (isKeyDown(KEY_ENTER) || btnInserir.isMousePressed()){
+        if (estado == EstadoJogo.NADA && (isKeyDown(KEY_ENTER) || btnInserir.isMousePressed())){
             parser = Parser.parse(textFieldExpressao.getValue());
             expressaoResultado = parser.getExpressaoResultante();
             resetarCamera();
@@ -192,6 +225,77 @@ public class Main extends EngineFrame {
         //Atualizar Câmera
         camera.target = new Vector2(cameraPos.x, cameraPos.y);
         
+        System.out.println(contagem);
+        
+        //Modo Jogo
+        switch (estado){
+            case NADA:
+                contagem = 0;
+                pontuacao = 0;
+                break;
+            case CONTAGEM:
+                if (contagem <= 4) {
+                    contagem += delta;
+                } else {
+                    estado = EstadoJogo.INICIO;
+                    contagem = 0;
+                }
+                break;
+            case INICIO:
+                if (contagem <= 3){
+                    contagem += delta;
+                } else {
+                    estado = EstadoJogo.RODADA;
+                    contagem = 0;
+                }
+                break;
+            case RODADA:
+                if (contagem <= 11) {
+                    contagem += delta;
+                } else {
+                    estado = EstadoJogo.FIM;
+                    contagem = 0;
+                }
+                break;
+            case FIM:
+                if (contagem <= 3){
+                    contagem += delta;
+                } else{
+                    estado = EstadoJogo.NADA;
+                    contagem = 0;
+                }
+                break;
+            case VITORIA:
+                if (contagem <= 3) {
+                    contagem += delta;
+                } else {
+                    estado = EstadoJogo.INICIO;
+                    pontuacao += 1;
+                    contagem = 0;
+                }
+                break;
+        }
+        
+        labelPontuacao.setText("Pontuação: " + pontuacao);
+        
+        if (btnIniciarJogo.isMousePressed()){
+            estado = EstadoJogo.CONTAGEM;
+        }
+        
+        if (btnEncerrarJogo.isMousePressed()){
+            estado = EstadoJogo.NADA;
+        }
+        
+        if (estado == EstadoJogo.RODADA && (btnEnviarResposta.isMousePressed() || isKeyDown(KEY_ENTER))){
+            if (textFieldResposta.getValue().equals(respostaJogo)){
+                contagem = 0;
+                estado = EstadoJogo.VITORIA;
+            }else{
+                contagem = 0;
+                estado = EstadoJogo.FIM;
+            }
+        }
+        
         //Link Github
         if (btnLink.isMousePressed()) {
 
@@ -250,7 +354,7 @@ public class Main extends EngineFrame {
             int tam = resultadoDaExpressao.length();
             
             switch (tam){
-                case 1 -> drawOutlinedText(resultadoDaExpressao, 58, 335, 100, tema, 1, BLACK);
+                case 1 -> drawOutlinedText(resultadoDaExpressao, 57, 335, 100, tema, 1, BLACK);
                 case 2 -> drawOutlinedText(resultadoDaExpressao, 38, 345, 80, tema, 1, BLACK);
                 case 3 -> drawOutlinedText(resultadoDaExpressao, 36, 355, 55, tema, 1, BLACK);
                 case 4 -> drawOutlinedText(resultadoDaExpressao, 38, 358, 40, tema, 1, BLACK);
@@ -261,6 +365,49 @@ public class Main extends EngineFrame {
                 case 9 -> drawOutlinedText(resultadoDaExpressao, 36, 363, 19, tema, 1, BLACK);
             }
 
+        }
+        
+        //Modo Jogo
+        Paint corTexto;
+        
+        switch (estado){
+            case CONTAGEM:
+                if (contagem <= 1) {
+                    drawOutlinedText("3", 57, 335, 100, tema, 1, BLACK);
+                } else {
+                    drawOutlinedText(Integer.toString((int) (4 - contagem)), 57, 335, 100, tema, 1, BLACK);
+                }
+                break;
+            case INICIO:
+                if ((int)(contagem) % 2 == 0){
+                    drawOutlinedText("COMEÇAR", 36, 363, 24, GREEN, 1, BLACK);
+                }else{
+                    drawOutlinedText("COMEÇAR", 36, 363, 24, tema, 1, BLACK);
+                } 
+                break;
+            case RODADA:
+                if (contagem <= 1) {
+                    drawOutlinedText("10", 38, 345, 80, tema, 1, BLACK);
+                } else {
+                    drawOutlinedText(Integer.toString((int)(11 - contagem)), 57, 335, 100, tema, 1, BLACK);
+                }
+                break;
+            case FIM:
+                if ((int)(contagem) % 2 == 0){
+                    corTexto = RED;
+                }else{
+                    corTexto = tema;
+                } 
+                drawOutlinedText("X", 55, 335, 100, corTexto, 1, BLACK);
+                break;
+            case VITORIA:
+                if ((int) (contagem) % 2 == 0) {
+                    corTexto = GREEN;
+                } else {
+                    corTexto = tema;
+                }
+                drawOutlinedText("O", 57, 335, 100, corTexto, 1, BLACK);
+                break;
         }
         
         //Desenhar os Componentes
