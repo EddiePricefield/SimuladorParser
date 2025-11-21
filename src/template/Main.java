@@ -9,6 +9,7 @@ import static br.com.davidbuzatto.jsge.core.engine.EngineFrame.KEY_RIGHT;
 import static br.com.davidbuzatto.jsge.core.engine.EngineFrame.KEY_UP;
 import static br.com.davidbuzatto.jsge.core.engine.EngineFrame.LIGHTGRAY;
 import br.com.davidbuzatto.jsge.imgui.GuiButton;
+import br.com.davidbuzatto.jsge.imgui.GuiCheckBox;
 import br.com.davidbuzatto.jsge.imgui.GuiComponent;
 import br.com.davidbuzatto.jsge.imgui.GuiLabel;
 import br.com.davidbuzatto.jsge.imgui.GuiLabelButton;
@@ -81,6 +82,9 @@ public class Main extends EngineFrame {
     private String resultadoAnterior;
     private String textFieldAnterior;
     private double cronometro;
+    private boolean cheat = false;
+    private int indexCodigo;
+    private final int[] codigo = {KEY_UP, KEY_UP, KEY_DOWN, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_LEFT, KEY_RIGHT, KEY_B, KEY_A};
     
     private enum EstadoJogo{
         NADA, CONTAGEM, INICIO, RODADA, FIM, VITORIA
@@ -274,6 +278,9 @@ public class Main extends EngineFrame {
                     resetarCamera();
                     resultadoDaExpressao = Double.toString(parser.getResultado());
                     respostaJogo = Integer.toString((int)(parser.getResultado()));
+                    if(cheat){
+                        System.out.println("Resposta: " + respostaJogo);
+                    }
                     contagem += delta;
                 } else if (contagem <= 11) {
                     contagem += delta;
@@ -344,6 +351,36 @@ public class Main extends EngineFrame {
         }
         
         textFieldExpressao.setVisible(estado == EstadoJogo.NADA);
+        
+        int keyPressed = -1;
+
+        if (isKeyPressed(KEY_UP)) {
+            keyPressed = KEY_UP;
+        } else if (isKeyPressed(KEY_DOWN)) {
+            keyPressed = KEY_DOWN;
+        } else if (isKeyPressed(KEY_LEFT)) {
+            keyPressed = KEY_LEFT;
+        } else if (isKeyPressed(KEY_RIGHT)) {
+            keyPressed = KEY_RIGHT;
+        } else if (isKeyPressed(KEY_B)) {
+            keyPressed = KEY_B;
+        } else if (isKeyPressed(KEY_A)) {
+            keyPressed = KEY_A;
+        }
+
+        if (keyPressed != -1) {
+            if (keyPressed == codigo[indexCodigo]) {
+                indexCodigo++;
+                if (indexCodigo == codigo.length) {
+                    indexCodigo = 0;
+                    cheat = true;
+                    System.out.println("Cheat Ativado!");
+                }
+            } else {
+                indexCodigo = 0;
+            }
+        }
+
         
         //Link Github
         if (btnLink.isMousePressed()) {
@@ -417,7 +454,7 @@ public class Main extends EngineFrame {
             
             int tam = resultadoDaExpressao.length();
             
-            System.out.println(num);
+            System.out.println("Resposta do Parser:" + num);
             
             switch (tam){
                 case 1 -> drawOutlinedText(resultadoDaExpressao, 57, 335, 100, tema, 1, BLACK);
