@@ -20,6 +20,7 @@ import java.awt.Paint;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import parser.*;
 import parser.ast.*;
 
@@ -33,8 +34,8 @@ import parser.ast.*;
 
 public class Main extends EngineFrame {
     
-    private Color tema = new Color(0xFF738ebd);
-    private Color background = new Color (0xFFc9c9c9);
+    private final Color tema = new Color(0xFF738ebd);
+    private final Color background = new Color (0xFFc9c9c9);
     
     //Componentes
     private List<GuiComponent> componentes;
@@ -69,12 +70,15 @@ public class Main extends EngineFrame {
     private String resultadoDaExpressao;
     
     //Variáveis para o Modo Jogo
-    private double contagem = 0;
+    private double contagem;
     private int pontuacao = 0;
-    private String respostaJogo = "1";
+    private int record = 0;
+    private String respostaJogo;
+    private String expressaoJogo;
     private Expressao expressaoAnterior;
     private String resultadoAnterior;
     private String textFieldAnterior;
+    private double cronometro;
     
     private enum EstadoJogo{
         NADA, CONTAGEM, INICIO, RODADA, FIM, VITORIA
@@ -234,7 +238,6 @@ public class Main extends EngineFrame {
         switch (estado){
             case NADA:
                 contagem = 0;
-                pontuacao = 0;
                 break;
             case CONTAGEM:
                 if (contagem <= 4) {
@@ -248,12 +251,21 @@ public class Main extends EngineFrame {
                 if (contagem <= 3){
                     contagem += delta;
                 } else {
+                    expressaoJogo = prepararJogo(2, 1, 10);
                     estado = EstadoJogo.RODADA;
                     contagem = 0;
                 }
                 break;
             case RODADA:
-                if (contagem <= 11) {
+                if( contagem == 0){
+                    textFieldResposta.setValue("");
+                    parser = Parser.parse(expressaoJogo);
+                    expressaoResultado = parser.getExpressaoResultante();
+                    resetarCamera();
+                    resultadoDaExpressao = Double.toString(parser.getResultado());
+                    respostaJogo = Integer.toString((int)(parser.getResultado()));
+                    contagem += delta;
+                } else if (contagem <= 11) {
                     contagem += delta;
                 } else {
                     estado = EstadoJogo.FIM;
@@ -275,6 +287,7 @@ public class Main extends EngineFrame {
                 if (contagem <= 3) {
                     contagem += delta;
                 } else {
+                    expressaoJogo = prepararJogo(2 + pontuacao, 1 + pontuacao, 10);
                     estado = EstadoJogo.RODADA;
                     pontuacao += 1;
                     contagem = 0;
@@ -284,8 +297,17 @@ public class Main extends EngineFrame {
         
         labelPontuacao.setText("Pontuação: " + pontuacao);
         
+        if (pontuacao > record){
+            cronometro += delta;
+        }else{
+            cronometro = 0;
+        }
+        
         if (btnIniciarJogo.isMousePressed()){
-            contagem = 0;
+            if(pontuacao > record){
+                record = pontuacao;
+            }
+            pontuacao = 0;
             resultadoAnterior = resultadoDaExpressao;
             resultadoDaExpressao = null;
             expressaoAnterior = expressaoResultado;
@@ -293,22 +315,25 @@ public class Main extends EngineFrame {
             textFieldAnterior = textFieldExpressao.getValue();
             textFieldExpressao.setValue("");
             estado = EstadoJogo.CONTAGEM;
+            contagem = 0;
         }
         
         if (btnEncerrarJogo.isMousePressed()){
-            contagem = 0;
             estado = EstadoJogo.FIM;
+            contagem = 0;
         }
         
         if (estado == EstadoJogo.RODADA && (btnEnviarResposta.isMousePressed() || isKeyDown(KEY_ENTER))){
             if (textFieldResposta.getValue().equals(respostaJogo)){
-                contagem = 0;
                 estado = EstadoJogo.VITORIA;
-            }else{
                 contagem = 0;
+            }else{
                 estado = EstadoJogo.FIM;
+                contagem = 0;
             }
         }
+        
+        textFieldExpressao.setVisible(estado == EstadoJogo.NADA);
         
         //Link Github
         if (btnLink.isMousePressed()) {
@@ -336,6 +361,13 @@ public class Main extends EngineFrame {
         desenharParser(100, 100, 50, 20);
         endMode2D();
         
+        //Desenhar o Parser no Modo de Jogo
+        if (estado == EstadoJogo.RODADA){
+            beginMode2D(camera);
+            desenharParser(100, 100, 50, 20);
+            endMode2D();
+        }
+        
         //Desenhar o menu em cima
         fillTriangle(610, 30, 900, 100, 800, -80, tema);
         drawTriangle(610, 30, 900, 100, 800, -80, BLACK);
@@ -353,15 +385,21 @@ public class Main extends EngineFrame {
         drawLine(0, 380, 20, 380, BLACK);
         drawLine(150, 380, 800, 380, BLACK);
         
+        //Desenhar o textField embaixo no Modo Jogo
+        if (estado != EstadoJogo.NADA){
+            fillRectangle(165, 400, 500, 30, background);
+            drawRectangle(165, 400, 500, 30, BLACK);
+        }
+        
         //Desenhar o Título do Parser
         drawOutlinedText("PARSER", 690, 8, 15 , 28, tema, 1, BLACK);
         
         //Desenhar o Resultado
-        if (resultadoDaExpressao != null){
+        if (estado == EstadoJogo.NADA && resultadoDaExpressao != null){
             
             double num = Double.parseDouble(resultadoDaExpressao);
             
-            if( num % (int)num == 0 || num == 0){
+            if( num % (int)num == 0 || num == 0 || (int)num == 0){
                 resultadoDaExpressao = String.valueOf((int) num);
             }
             
@@ -382,6 +420,22 @@ public class Main extends EngineFrame {
         }
         
         //Modo Jogo
+        
+        if (estado != EstadoJogo.NADA){
+            
+            Paint corRecorde;
+            
+            if ((int) cronometro % 2 == 0) {
+                corRecorde = RED;
+            } else {
+                corRecorde = GREEN;
+            }
+            
+            if ((pontuacao > record && record != 0) || (pontuacao != 0 && record == 0)){
+                drawOutlinedText("NOVO RECORDE!", 482, 35, 10, corRecorde, 1, BLACK);
+            }
+        }
+        
         Paint corTexto;
         
         switch (estado){
@@ -566,6 +620,30 @@ public class Main extends EngineFrame {
         }
 
     }
+    
+    public String prepararJogo(int numeros, int operadores, int numMax) {
+
+        Random random = new Random();
+        StringBuilder expr = new StringBuilder();
+        
+        int numero = random.nextInt(numMax + 1);
+        expr.append(numero);
+
+        String[] ops = {"+", "-", "*"};
+
+        for (int i = 0; i < operadores; i++) {
+            String op = ops[random.nextInt(ops.length)];
+            int proxNum = random.nextInt(numMax + 1);
+
+            expr.append(" ").append(op).append(" ").append(proxNum);
+            
+            numero = proxNum;
+        }
+
+        // Salvar na variável da classe
+         return expr.toString();
+    }
+
     
     //----------< Instanciar Engine e Iniciá-la >----------//
 
