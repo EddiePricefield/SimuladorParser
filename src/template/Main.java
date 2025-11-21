@@ -72,6 +72,9 @@ public class Main extends EngineFrame {
     private double contagem = 0;
     private int pontuacao = 0;
     private String respostaJogo = "1";
+    private Expressao expressaoAnterior;
+    private String resultadoAnterior;
+    private String textFieldAnterior;
     
     private enum EstadoJogo{
         NADA, CONTAGEM, INICIO, RODADA, FIM, VITORIA
@@ -263,13 +266,16 @@ public class Main extends EngineFrame {
                 } else{
                     estado = EstadoJogo.NADA;
                     contagem = 0;
+                    resultadoDaExpressao = resultadoAnterior;
+                    expressaoResultado = expressaoAnterior;
+                    textFieldExpressao.setValue(textFieldAnterior);
                 }
                 break;
             case VITORIA:
                 if (contagem <= 3) {
                     contagem += delta;
                 } else {
-                    estado = EstadoJogo.INICIO;
+                    estado = EstadoJogo.RODADA;
                     pontuacao += 1;
                     contagem = 0;
                 }
@@ -279,11 +285,19 @@ public class Main extends EngineFrame {
         labelPontuacao.setText("Pontuação: " + pontuacao);
         
         if (btnIniciarJogo.isMousePressed()){
+            contagem = 0;
+            resultadoAnterior = resultadoDaExpressao;
+            resultadoDaExpressao = null;
+            expressaoAnterior = expressaoResultado;
+            expressaoResultado = null;
+            textFieldAnterior = textFieldExpressao.getValue();
+            textFieldExpressao.setValue("");
             estado = EstadoJogo.CONTAGEM;
         }
         
         if (btnEncerrarJogo.isMousePressed()){
-            estado = EstadoJogo.NADA;
+            contagem = 0;
+            estado = EstadoJogo.FIM;
         }
         
         if (estado == EstadoJogo.RODADA && (btnEnviarResposta.isMousePressed() || isKeyDown(KEY_ENTER))){
@@ -398,7 +412,7 @@ public class Main extends EngineFrame {
                 }else{
                     corTexto = tema;
                 } 
-                drawOutlinedText("X", 55, 335, 100, corTexto, 1, BLACK);
+                drawOutlinedText("X", 57, 335, 100, corTexto, 1, BLACK);
                 break;
             case VITORIA:
                 if ((int) (contagem) % 2 == 0) {
