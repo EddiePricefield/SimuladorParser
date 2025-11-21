@@ -20,6 +20,7 @@ import java.awt.Paint;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 import parser.*;
 import parser.ast.*;
@@ -43,6 +44,7 @@ public class Main extends EngineFrame {
     private GuiLabelButton btnLink;
     private GuiTextField textFieldExpressao;
     private GuiButton btnInserir;
+    private GuiButton btnLimpar;
     
     private GuiButton btnCamE;
     private GuiButton btnCamD;
@@ -116,7 +118,8 @@ public class Main extends EngineFrame {
         expressaoResultado = parser.getExpressaoResultante();
         
         textFieldExpressao = new GuiTextField(165, 400, 500, 30, "");
-        btnInserir = new GuiButton(685, 400, 100, 30, "Inserir");
+        btnInserir = new GuiButton(670, 400, 90, 30, "Inserir");
+        btnLimpar = new GuiButton(765, 400, 20, 30, "✖");
         
         btnCamC = new GuiButton(19, 407, 10, 10, "");
         btnCamB = new GuiButton(19, 429, 10, 10, "");
@@ -134,6 +137,7 @@ public class Main extends EngineFrame {
                 
         componentes.add(textFieldExpressao);
         componentes.add(btnInserir);
+        componentes.add(btnLimpar);
         componentes.add(btnCamC);
         componentes.add(btnCamB);
         componentes.add(btnCamE);
@@ -166,13 +170,21 @@ public class Main extends EngineFrame {
         textFieldExpressao.setBackgroundColor(background);
         labelPontuacao.setTextColor(BLACK);
         
-        //Inserir a Expressão do Parser
+        //Expressão do Parser
         if (estado == EstadoJogo.NADA && (isKeyDown(KEY_ENTER) || btnInserir.isMousePressed())){
             parser = Parser.parse(textFieldExpressao.getValue());
             expressaoResultado = parser.getExpressaoResultante();
             resetarCamera();
             resultadoDaExpressao = Double.toString(parser.getResultado());
         }
+        
+        if (estado == EstadoJogo.NADA && btnLimpar.isMousePressed()) {
+            expressaoResultado = null;
+            resultadoDaExpressao = null;
+            textFieldExpressao.setValue("");
+            resetarCamera();
+        }
+        
         
         //Joystick (Movimento da Câmera)
         Color fundoBotao = LIGHTGRAY;
@@ -231,8 +243,6 @@ public class Main extends EngineFrame {
         
         //Atualizar Câmera
         camera.target = new Vector2(cameraPos.x, cameraPos.y);
-        
-        System.out.println(contagem);
         
         //Modo Jogo
         switch (estado){
@@ -399,11 +409,15 @@ public class Main extends EngineFrame {
             
             double num = Double.parseDouble(resultadoDaExpressao);
             
-            if( num % (int)num == 0 || num == 0 || (int)num == 0){
+            if (num == Math.floor(num)) {
                 resultadoDaExpressao = String.valueOf((int) num);
+            }else{
+                resultadoDaExpressao = String.format(Locale.US, "%.2f", num);
             }
             
             int tam = resultadoDaExpressao.length();
+            
+            System.out.println(num);
             
             switch (tam){
                 case 1 -> drawOutlinedText(resultadoDaExpressao, 57, 335, 100, tema, 1, BLACK);
@@ -415,6 +429,10 @@ public class Main extends EngineFrame {
                 case 7 -> drawOutlinedText(resultadoDaExpressao, 36, 363, 24, tema, 1, BLACK);
                 case 8 -> drawOutlinedText(resultadoDaExpressao, 33, 363, 22, tema, 1, BLACK);
                 case 9 -> drawOutlinedText(resultadoDaExpressao, 36, 363, 19, tema, 1, BLACK);
+                default -> {
+                    drawOutlinedText("MUITO", 41, 345, 30, tema, 1, BLACK);
+                    drawOutlinedText("GRANDE", 38, 370, 27, tema, 1, BLACK);
+                    drawOutlinedText("ERROR", 58, 395, 18, RED, 1, BLACK);}
             }
 
         }
