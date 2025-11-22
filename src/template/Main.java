@@ -9,12 +9,12 @@ import static br.com.davidbuzatto.jsge.core.engine.EngineFrame.KEY_RIGHT;
 import static br.com.davidbuzatto.jsge.core.engine.EngineFrame.KEY_UP;
 import static br.com.davidbuzatto.jsge.core.engine.EngineFrame.LIGHTGRAY;
 import br.com.davidbuzatto.jsge.imgui.GuiButton;
-import br.com.davidbuzatto.jsge.imgui.GuiCheckBox;
 import br.com.davidbuzatto.jsge.imgui.GuiComponent;
 import br.com.davidbuzatto.jsge.imgui.GuiLabel;
 import br.com.davidbuzatto.jsge.imgui.GuiLabelButton;
 import br.com.davidbuzatto.jsge.imgui.GuiTextField;
 import br.com.davidbuzatto.jsge.math.Vector2;
+import br.com.davidbuzatto.jsge.sound.Sound;
 import java.awt.Color;
 import java.awt.Desktop;
 import java.awt.Paint;
@@ -74,17 +74,24 @@ public class Main extends EngineFrame {
     
     //Variáveis para o Modo Jogo
     private double contagem;
-    private int pontuacao = 0;
-    private int record = 0;
+    private int pontuacao;
+    private int record;
     private String respostaJogo;
     private String expressaoJogo;
     private Expressao expressaoAnterior;
     private String resultadoAnterior;
     private String textFieldAnterior;
     private double cronometro;
-    private boolean cheat = false;
+    private boolean cheat;
     private int indexCodigo;
     private final int[] codigo = {KEY_UP, KEY_UP, KEY_DOWN, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_LEFT, KEY_RIGHT, KEY_B, KEY_A};
+    
+    private Sound sound;
+    private Sound soundCheat;
+    private Sound soundRecord;
+    private Sound soundEasterEgg;
+    private boolean tocarSomRecord;
+    private Sound music;
     
     private enum EstadoJogo{
         NADA, CONTAGEM, INICIO, RODADA, FIM, VITORIA
@@ -116,7 +123,15 @@ public class Main extends EngineFrame {
         
         useAsDependencyForIMGUI();
         componentes = new ArrayList<>();
+        
         estado = EstadoJogo.NADA;
+        cheat = false;
+        soundRecord = loadSound("resources/sfx/BAL_HighScore.wav");
+        soundCheat = loadSound("resources/sfx/BAL_Wow.wav");
+        soundEasterEgg = loadSound("resources/sfx/BaldiTrophy1.wav");
+        tocarSomRecord = false;
+        record = 0;
+        pontuacao = 0;
         
         parser = Parser.parse("");
         expressaoResultado = parser.getExpressaoResultante();
@@ -254,10 +269,13 @@ public class Main extends EngineFrame {
                 contagem = 0;
                 break;
             case CONTAGEM:
+                sound = loadSound("resources/sfx/bruh.ogg");
                 if (contagem <= 4) {
                     contagem += delta;
                 } else {
                     estado = EstadoJogo.INICIO;
+                    carregarSons();
+                    sound.play();
                     contagem = 0;
                 }
                 break;
@@ -267,6 +285,11 @@ public class Main extends EngineFrame {
                 } else {
                     expressaoJogo = prepararJogo(2, 1, 10);
                     estado = EstadoJogo.RODADA;
+                    Random random = new Random();
+                    int valor = random.nextInt(999);
+                    if(valor == 7){
+                        soundEasterEgg.play();
+                    }
                     contagem = 0;
                 }
                 break;
@@ -286,6 +309,8 @@ public class Main extends EngineFrame {
                     contagem += delta;
                 } else {
                     estado = EstadoJogo.FIM;
+                    carregarSons();
+                    sound.play();
                     contagem = 0;
                 }
                 break;
@@ -306,6 +331,11 @@ public class Main extends EngineFrame {
                 } else {
                     expressaoJogo = prepararJogo(2 + pontuacao, 1 + pontuacao, 10);
                     estado = EstadoJogo.RODADA;
+                    Random random = new Random();
+                    int valor = random.nextInt(999);
+                    if (valor == 7) {
+                        soundEasterEgg.play();
+                    }
                     pontuacao += 1;
                     contagem = 0;
                 }
@@ -332,25 +362,37 @@ public class Main extends EngineFrame {
             textFieldAnterior = textFieldExpressao.getValue();
             textFieldExpressao.setValue("");
             estado = EstadoJogo.CONTAGEM;
+            carregarSons();
+            sound.play();
             contagem = 0;
         }
         
         if (btnEncerrarJogo.isMousePressed()){
             estado = EstadoJogo.FIM;
+            carregarSons();
+            sound.play();
             contagem = 0;
         }
         
         if (estado == EstadoJogo.RODADA && (btnEnviarResposta.isMousePressed() || isKeyDown(KEY_ENTER))){
             if (textFieldResposta.getValue().equals(respostaJogo)){
                 estado = EstadoJogo.VITORIA;
+                carregarSons();
+                sound.play();
                 contagem = 0;
             }else{
                 estado = EstadoJogo.FIM;
+                carregarSons();
+                sound.play();
                 contagem = 0;
             }
         }
         
         textFieldExpressao.setVisible(estado == EstadoJogo.NADA);
+        
+        if (estado == EstadoJogo.NADA){
+            tocarSomRecord = false;
+        }
         
         int keyPressed = -1;
 
@@ -374,6 +416,7 @@ public class Main extends EngineFrame {
                 if (indexCodigo == codigo.length) {
                     indexCodigo = 0;
                     cheat = true;
+                    soundCheat.play();
                     System.out.println("Cheat Ativado!");
                 }
             } else {
@@ -454,7 +497,7 @@ public class Main extends EngineFrame {
             
             int tam = resultadoDaExpressao.length();
             
-            System.out.println("Resposta do Parser:" + num);
+            System.out.println("Resposta do Parser: " + num);
             
             switch (tam){
                 case 1 -> drawOutlinedText(resultadoDaExpressao, 57, 335, 100, tema, 1, BLACK);
@@ -478,16 +521,22 @@ public class Main extends EngineFrame {
         
         if (estado != EstadoJogo.NADA){
             
-            Paint corRecorde;
-            
-            if ((int) cronometro % 2 == 0) {
-                corRecorde = RED;
-            } else {
-                corRecorde = GREEN;
-            }
-            
             if ((pontuacao > record && record != 0) || (pontuacao != 0 && record == 0)){
+                
+                Paint corRecorde;
+
+                if ((int) cronometro % 2 == 0) {
+                    corRecorde = RED;
+                } else {
+                    corRecorde = GREEN;
+                }
+                
                 drawOutlinedText("NOVO RECORDE!", 482, 35, 10, corRecorde, 1, BLACK);
+                
+                if (!tocarSomRecord){
+                    soundRecord.play();
+                    tocarSomRecord = true;
+                }
             }
         }
         
@@ -698,7 +747,19 @@ public class Main extends EngineFrame {
         // Salvar na variável da classe
          return expr.toString();
     }
-
+    
+    public void carregarSons(){
+        
+        switch(estado){
+            case CONTAGEM -> sound = loadSound("resources/sfx/BAL_Math_Intro2.wav");
+            case INICIO -> sound = loadSound("resources/sfx/BAL_FarmIntro6.wav");
+            case FIM -> sound = loadSound("resources/sfx/BAL_GameOver.wav");
+            case VITORIA -> {
+                Random random = new Random();
+                sound = loadSound("resources/sfx/BAL_Praise" + String.valueOf(random.nextInt(1,6)) + "_Classic.wav");}
+        }
+        
+    }
     
     //----------< Instanciar Engine e Iniciá-la >----------//
 
