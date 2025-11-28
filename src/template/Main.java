@@ -210,28 +210,28 @@ public class Main extends EngineFrame {
         Color cliqueBotao = new Color(151, 232, 255, 255);
 
         if (isKeyDown(KEY_UP) || btnCamC.isMouseDown()) {
-            cameraPos.y += cameraVel * delta;
+            cameraPos.y -= cameraVel * delta;
             btnCamC.setBackgroundColor(cliqueBotao);
         } else {
             btnCamC.setBackgroundColor(fundoBotao);
         }
 
         if (isKeyDown(KEY_DOWN) || btnCamB.isMouseDown()) {
-            cameraPos.y -= cameraVel * delta;
+            cameraPos.y += cameraVel * delta;
             btnCamB.setBackgroundColor(cliqueBotao);
         } else {
             btnCamB.setBackgroundColor(fundoBotao);
         }
 
         if (isKeyDown(KEY_LEFT) || btnCamE.isMouseDown()) {
-            cameraPos.x += cameraVel * delta;
+            cameraPos.x -= cameraVel * delta;
             btnCamE.setBackgroundColor(cliqueBotao);
         } else {
             btnCamE.setBackgroundColor(fundoBotao);
         }
 
         if (isKeyDown(KEY_RIGHT) || btnCamD.isMouseDown()) {
-            cameraPos.x -= cameraVel * delta;
+            cameraPos.x += cameraVel * delta;
             btnCamD.setBackgroundColor(cliqueBotao);
         } else {
             btnCamD.setBackgroundColor(fundoBotao);
@@ -323,6 +323,7 @@ public class Main extends EngineFrame {
                     resultadoDaExpressao = resultadoAnterior;
                     expressaoResultado = expressaoAnterior;
                     textFieldExpressao.setValue(textFieldAnterior);
+                    resetarCamera();
                 }
                 break;
             case VITORIA:
@@ -497,7 +498,7 @@ public class Main extends EngineFrame {
             
             int tam = resultadoDaExpressao.length();
             
-            System.out.println("Resposta do Parser: " + num);
+//            System.out.println("Resposta do Parser: " + num);
             
             switch (tam){
                 case 1 -> drawOutlinedText(resultadoDaExpressao, 57, 335, 100, tema, 1, BLACK);
